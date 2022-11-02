@@ -151,6 +151,17 @@ std::array<int, 2> get_position()
     return {10, 20};
 }
 
+struct ErrorCode
+{
+    int ec;
+    const char* m;
+};
+
+ErrorCode open_file()
+{
+    return ErrorCode{13, "file not found!"};
+}
+
 TEST_CASE("structured bindings")
 {
     SECTION("native arrays")
@@ -195,5 +206,64 @@ TEST_CASE("structured bindings")
         REQUIRE(y == 20);
 
         auto [pos_x, pos_y] = get_position();
+    }
+
+    SECTION("struct/class")
+    {
+        auto [error_code, error_message] = open_file();
+
+        REQUIRE(error_code == 13);
+        std::cout << "Error: " << error_message << "\n";
+    }
+}
+
+struct Timestamp
+{
+    int h, m, s;
+};
+
+TEST_CASE("structured bindings - how it works")
+{
+    Timestamp t1;
+
+    auto [hours, minutes, seconds] = t1;
+
+    hours = 15;
+    minutes = 41;
+    seconds = 30;
+
+    REQUIRE(t1.h == 15);
+
+    SECTION("anonymous entity")
+    {
+        auto entity = t1;
+        auto&& hours = entity.h; // auto&& -> int&
+        auto&& minutes = entity.m; // auto&& -> int&
+        auto&& seconds = entity.s; // auto&& -> int&
+    }
+}
+
+
+TEST_CASE("auto")
+{
+    int x = 10;
+    auto ax1 = x; // copy
+
+    auto& ax2 = x; // no-copy - reference type
+
+    auto&& ax3 = x;  // x is lvalue -> int&
+    static_assert(std::is_lvalue_reference_v<decltype(ax3)>);
+
+    auto&& ax4 = 10; // 10 is rvalue -> int&&  
+    static_assert(std::is_rvalue_reference_v<decltype(ax4)>);
+}
+
+TEST_CASE("use cases")
+{
+    std::map<int, std::string> dict = {{1, "one"}, {2, "two"}, {3, "three"}};
+
+    for(const auto& [key, value] : dict)
+    {
+        std::cout << key << " - " << value << "\n";
     }
 }
