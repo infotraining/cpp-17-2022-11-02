@@ -58,13 +58,18 @@ TEST_CASE("binding refs")
     }
 }
 
+//////////////////////////////////////////////
+// Array with move semantics
+
 class Array
 {
     int* items_;
     size_t size_;
 
 public:
-    Array(size_t size) : items_{new int[size]}, size_{size}
+    Array(size_t size)
+        : items_{new int[size]}
+        , size_{size}
     {
         std::fill_n(items_, size_, 0);
 
@@ -79,7 +84,8 @@ public:
         std::cout << "Array({ ";
         for (const auto& item : il)
             std::cout << item << " ";
-        std::cout << "}" << ", @" << items_ << ")\n";
+        std::cout << "}"
+                  << ", @" << items_ << ")\n";
     }
 
     // copy constructor
@@ -93,7 +99,8 @@ public:
             items_[i] = source[i];
             std::cout << items_[i] << " ";
         }
-        std::cout << "}"<< ", @" << items_ << ")\n";
+        std::cout << "}"
+                  << ", @" << items_ << ")\n";
     }
 
     // copy assignment
@@ -112,7 +119,8 @@ public:
                 items_[i] = source[i];
                 std::cout << items_[i] << " ";
             }
-            std::cout << "}" << ", @" << items_ << ")\n";
+            std::cout << "}"
+                      << ", @" << items_ << ")\n";
         }
 
         return *this;
@@ -153,10 +161,10 @@ public:
         std::cout << "~Array(@";
         if (items_)
             std::cout << items_;
-        else 
+        else
             std::cout << "nullptr - state after move";
         std::cout << ")\n";
-        
+
         delete[] items_;
     }
 
@@ -230,7 +238,7 @@ namespace Legacy
     Array* load_big_data()
     {
         Array* data = new Array(1'000'000);
-        for(size_t i = 0; i < data->size(); ++i)
+        for (size_t i = 0; i < data->size(); ++i)
         {
             (*data)[i] = i;
         }
@@ -244,7 +252,7 @@ namespace Modern
     Array load_big_data()
     {
         Array data(10);
-        for(size_t i = 0; i < data.size(); ++i)
+        for (size_t i = 0; i < data.size(); ++i)
         {
             data[i] = i;
         }
@@ -266,3 +274,54 @@ TEST_CASE("modern cpp with move semantics")
     dataset.push_back(Array{1, 2, 3, 4, 5});
 }
 
+namespace TwoVersions
+{
+    void use(Array&& arr)
+    {
+        std::vector<Array> vec;
+        vec.push_back(std::move(arr)); // moving object to vector
+
+        //...
+    }
+
+    void use(const Array& arr)
+    {
+        std::vector<Array> vec;
+        vec.push_back(arr); // copying object to vector
+
+        //...
+    }
+}
+
+//////////////////////////////////
+// PERFECT FORWARDING
+
+template <typename TArg>
+void use(TArg&& arg) // TArg is template parameter => TArg&& universal reference
+{
+    std::vector<Array> vec;
+    vec.push_back(std::forward<TArg>(arg)); // std::forward<TArg>(arg) => conditional move if arg is rvalue ref
+}
+
+namespace Cpp20
+{
+    // void use(auto&& arg) // TArg is template parameter => TArg&& universal reference
+    // {
+    //     std::vector<Array> vec;
+    //     vec.push_back(std::forward<decltype(arg)>(arg)); // std::forward<decltype(arg)>(arg) => conditional move if arg is rvalue ref
+    // }
+}
+
+TEST_CASE("forwarding")
+{
+    std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n";
+    use(Array{1, 2, 3, 4});
+
+    Array data1{73, 5345, 345, 34534, 3};
+    use(std::move(data1)); // DO NOT USE OBJECT data1 AFTER MOVE
+
+    Array data2{77, 55, 4, 555, 55};
+    use(data2);
+
+    std::cout << data2[0] << "\n";
+}
