@@ -296,6 +296,22 @@ namespace TwoVersions
 //////////////////////////////////
 // PERFECT FORWARDING
 
+namespace Explain
+{
+    template <typename TArg>
+    decltype(auto) forward(TArg&& arg)
+    {
+        if constexpr(std::is_reference_v<TArg>)
+        {
+            return arg;
+        }
+        else
+        {
+            return std::move(arg);
+        }
+    }
+}
+
 template <typename TArg>
 void use(TArg&& arg) // TArg is template parameter => TArg&& universal reference
 {

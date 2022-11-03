@@ -122,7 +122,7 @@ TEST_CASE("constexpr if")
     REQUIRE(is_power_of_2(8.0));
 }
 
-namespace BeforeCpp17
+namespace [[deprecated]] BeforeCpp17
 {
     void print()
     {
@@ -172,4 +172,5 @@ void print_with_prefixes(std::tuple<T1...> prefixes, T2... args)
 TEST_CASE("many tails")
 {
     print_with_prefixes(std::tuple{"one", "two", "three"}, 1, 2, 3);
+    static_assert(sizeof(int) >= 4);
 }

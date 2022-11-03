@@ -13,7 +13,7 @@ using namespace std;
 template <typename Iterator>
 auto advance_it(Iterator& it, size_t n)
 {
-    if constexpr(is_base_of_v<random_access_iterator_tag, typename iterator_traits<Iterator>::iterator_category>)
+    if constexpr(is_base_of_v<random_access_iterator_tag,typename iterator_traits<Iterator>::iterator_category>)
     {
         it += n;
         return std::random_access_iterator_tag{};
