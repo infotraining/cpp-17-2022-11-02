@@ -226,7 +226,7 @@ TEST_CASE("structured bindings - how it works")
 {
     Timestamp t1;
 
-    auto [hours, minutes, seconds] = t1;
+    auto& [hours, minutes, seconds] = t1;
 
     hours = 15;
     minutes = 41;
@@ -236,7 +236,7 @@ TEST_CASE("structured bindings - how it works")
 
     SECTION("anonymous entity")
     {
-        auto entity = t1;
+        auto& entity = t1;
         auto&& hours = entity.h; // auto&& -> int&
         auto&& minutes = entity.m; // auto&& -> int&
         auto&& seconds = entity.s; // auto&& -> int&

@@ -39,3 +39,7 @@ add_subdirectory(string-view)
 add_subdirectory(optional)
 add_subdirectory(any)
 add_subdirectory(variant)
+
+# add_subdirectory(_exercises/constexpr-if-ex)
+# add_subdirectory(_exercises/ctad-ex)
+# add_subdirectory(_exercises/fold-expressions-ex)

@@ -150,6 +150,13 @@ public:
 
     ~Array()
     {
+        std::cout << "~Array(@";
+        if (items_)
+            std::cout << items_;
+        else 
+            std::cout << "nullptr - state after move";
+        std::cout << ")\n";
+        
         delete[] items_;
     }
 
