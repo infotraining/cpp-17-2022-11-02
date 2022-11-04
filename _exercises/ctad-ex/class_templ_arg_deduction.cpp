@@ -77,18 +77,18 @@ struct Array
 
 // deduction guide
 template <typename T, typename... Ts>
-Array(T, Ts...) -> Array<T, sizeof...(Ts) + 1>;
+Array(T, Ts...) -> Array< std::enable_if_t<(... && std::is_same_v<T, Ts>), T>, sizeof...(Ts) + 1>;
 
 TEST_CASE("CTAD for Array")
 {
-    Array arr1{1, 2, 'a'};
+    Array arr1{1, 2, 3};
     static_assert(std::is_same_v<decltype(arr1), Array<int, 3>>);
 
     Array arr2{"abc", "def", "ghi", "klm"};
     static_assert(std::is_same_v<decltype(arr2), Array<const char*, 4>>);
 
-    // SECTION("extra")
-    // {
-    //     Array arr3{1.0, 2.3, 3.1, 4.0f, 5.0}; // it should be an error - all items on the list should have the same type
-    // }
+    SECTION("extra")
+    {
+        Array arr3{1.0, 2.3, 3.1, 4.0, 5.0}; // it should be an error - all items on the list should have the same type
+    }
 }
