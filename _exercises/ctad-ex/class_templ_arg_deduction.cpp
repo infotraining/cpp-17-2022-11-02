@@ -73,8 +73,8 @@ TEST_CASE("CTAD for Array")
     Array arr2{"abc", "def", "ghi", "klm"};
     static_assert(std::is_same_v<decltype(arr2), Array<const char*, 4>>);
 
-    SECTION("extra")
-    {
-        Array arr3{1.0, 2.3, 3.1, 4.0f, 5.0}; // it should be an error - all items on the list should have the same type
-    }
+    // SECTION("extra")
+    // {
+    //     Array arr3{1.0, 2.3, 3.1, 4.0f, 5.0}; // it should be an error - all items on the list should have the same type
+    // }
 }
