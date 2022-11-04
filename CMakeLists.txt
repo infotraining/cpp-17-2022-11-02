@@ -42,7 +42,7 @@ add_subdirectory(variant)
 #add_subdirectory(parallel-stl-benchmarks)
 
 add_subdirectory(_exercises/constexpr-if-ex)
-# add_subdirectory(_exercises/ctad-ex)
+add_subdirectory(_exercises/ctad-ex)
 # add_subdirectory(_exercises/fold-expressions-ex)
 # add_subdirectory(_exercises/optional-ex)
 # add_subdirectory(_exercises/variant-ex)
