@@ -5,6 +5,11 @@
 #include <numeric>
 #include <string>
 #include <vector>
+#include <map>
+#include <optional>
+#include <functional>
+#include <list>
+#include <array>
 
 using namespace std;
 
@@ -95,9 +100,16 @@ struct ValuePair
     T1 fst;
     T2 snd;
  
-    ValuePair(const T1& f, const T2& s) : fst{f}, snd{s}
-    {
-    }
+    // ValuePair(const T1& f, const T2& s) : fst{f}, snd{s}
+    // {
+    // }
+
+    // ValuePair(T1&& f, T2&& s) : fst{std::move(f)}, snd{std::move(s)}
+    // {}
+
+    template <typename U1, typename U2>
+    ValuePair(U1&& f, U2&& s) : fst{std::forward<U1>(f)}, snd{std::forward<U2>(s)} // U1&& f and U2&& s - are universal references
+    {}
 };
 
 //////////////////////
@@ -105,7 +117,16 @@ struct ValuePair
 template <typename T1, typename T2>
 ValuePair(T1, T2) -> ValuePair<T1, T2>;
 
+ValuePair(const char*, const char*) -> ValuePair<std::string, std::string>;
 
+template <typename T>
+ValuePair(T, const char*) -> ValuePair<T, std::string>;
+
+template <typename T>
+ValuePair(const char*, T) -> ValuePair<std::string, T>;
+
+///////////////////////
+// helper 
 template <typename T1, typename T2>
 ValuePair<T1, T2> make_value_pair(T1 a, T2 b)
 {
@@ -125,6 +146,10 @@ TEST_CASE("CTAD")
     ValuePair vp5{42u, "forty two"s}; // ValuePair<unsigned int, std::string>
 
     // ValuePair<uint8_t> vp6{42, 3.14}; // partial deduction is forbidden
+
+    ValuePair vp6{"abc", "defg"}; // ValuePair<std::string, std::string> // because of deduction guide line 109
+
+    ValuePair vp7{42, "text"};    
 }
 
 // explicit - dygresja :)
@@ -152,4 +177,187 @@ TEST_CASE("CTAD - special copy case")
     std::vector data1{1, 4, 5, 6, 8}; // vector<int>
     std::vector data2{data1}; // special case - CTAD with copy -> vector<int>
     std::vector data3{data1, data1}; // std::vector<std::vector<int>>
+}
+
+/////////////////////////////////////////
+// auto vs. decltype
+
+template <typename T>
+auto multiply(T a, T b) // -> decltype(a * b)  // since C++14 - auto is enabled for functions
+{
+    return a * b;
+}
+
+auto describe(int x) // auto as deduction mechanism from return
+{
+    if (x % 2 == 0)
+    {
+        return "even";
+    }
+
+    return "odd";
+}
+
+template <typename Map>
+decltype(auto) get_value(Map& m, const typename Map::key_type& key) // decltype as deduction mechanism for return
+{
+    return m.at(key); // deduction using: decltype(m.at(key))
+}
+
+TEST_CASE("decltype")
+{
+    std::map<int, std::string> dict = { {1, "one"}, {2, "two"} };
+
+    using RefMappedValue = decltype(dict[0]);
+
+    auto backup = dict;
+    REQUIRE(backup.size() == 2);
+
+    decltype(dict) empty_dict;
+    REQUIRE(empty_dict.size() == 0);
+
+    std::string value = "text";
+    decltype(dict[0]) item = value; // std::string& item = value;
+
+    std::cout << 2 << " - " << get_value(dict, 2) << "\n";
+
+    get_value(dict, 2) = "dwa";
+
+    std::cout << 2 << " - " << get_value(dict, 2) << "\n";
+}
+
+
+// aggregate
+template <typename T>
+struct Data
+{
+    T value;
+};
+
+// deduction guide for aggregate
+template <typename T>
+Data(T) -> Data<T>;
+
+TEST_CASE("CTAD & aggregates")
+{
+    Data d1{42}; // Data<int>
+
+    Data d2{"text"}; // Data<const char*>
+}
+
+int foobar(int x)
+{
+    return 42 * x;
+}
+
+TEST_CASE("std library & CTAD")
+{
+    SECTION("pair")
+    {
+        std::pair p1{42, "text"}; // std::pair<int, const char*>
+    }
+
+    SECTION("tuple")
+    {
+        const int cx = 42;
+        std::tuple t1{cx, 3.14, "text"}; // std::tuple<int, double, const char*>
+
+        std::pair p{42, "text"};
+        std::tuple t2{p};  // std::tuple<int, const char*>
+        std::tuple t3 = p; // std::tuple<int, const char*>
+    }
+
+    SECTION("optional")
+    {
+        std::optional opt_int{42}; // std::optional<int>
+    }
+
+    SECTION("smart pointers")
+    {
+        std::unique_ptr<int> uptr{new int(13)}; // CTAD is disabled
+        std::shared_ptr<int> sptr{new int(13)}; // CTAD is disabled
+
+        std::unique_ptr uptr_other = std::make_unique<int>(13);
+        std::shared_ptr sptr_other = std::move(uptr_other);
+        std::weak_ptr wptr = sptr_other;
+    }
+
+    SECTION("function")
+    {
+        std::function f = foobar;
+        REQUIRE(f(1) == 42);
+    }
+
+    SECTION("containers")
+    {
+        std::vector vec{1, 2, 3, 4}; // std::vector<int>
+        std::list lst{1, 2, 3, 4}; // std::list<int>
+
+        std::vector backup_vec(lst.begin(), lst.end()); // std::vector<int>
+
+        std::array arr{1, 2, 3, 4, 5}; // std::array<int, 5>
+    }
+}
+
+template <typename T>
+struct TypeIdentity
+{
+    using type = T;
+};
+
+template <typename T>
+using TypeIdentity_t = typename TypeIdentity<T>::type;
+
+template <typename T>
+class UniquePtr
+{
+    T* ptr_;   
+public:
+    explicit UniquePtr(TypeIdentity_t<T>* ptr) : ptr_{ptr}
+    {}
+
+    UniquePtr(const UniquePtr&) = delete;
+    UniquePtr& operator=(const UniquePtr&) = delete;
+
+    UniquePtr(UniquePtr&& source) noexcept : ptr_{source.ptr_}
+    {
+        source.ptr_ = nullptr;
+    }
+
+    UniquePtr& operator=(UniquePtr&& source)
+    {
+        if (this != &source)
+        {
+            delete ptr_;
+            ptr_ = source.ptr_;
+            source.ptr_ = nullptr;
+        }
+
+        return *this;
+    }
+
+    ~UniquePtr()
+    {
+        delete ptr_;
+    }
+
+    T* get() const
+    {
+        return ptr_;
+    }
+
+    T& operator*() const
+    {
+        return *ptr_;
+    }
+
+    T* operator->() const
+    {
+        return ptr_;
+    }
+};
+
+TEST_CASE("UniquePtr")
+{
+    UniquePtr<int> uptr{new int(13)};
 }
