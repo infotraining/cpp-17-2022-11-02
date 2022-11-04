@@ -14,6 +14,12 @@ struct Range
     T low, high;
 };
 
+template<typename T>
+Range(T, T) -> Range<T>;
+
+template <typename T1, typename T2>
+Range(T1, T2) -> Range<std::common_type_t<T1, T2>>;
+
 TEST_CASE("CTAD for Range")
 {
     Range r1{4, 5};
@@ -22,11 +28,11 @@ TEST_CASE("CTAD for Range")
     Range r2{3.14, 6.28};
     static_assert(std::is_same_v<decltype(r2), Range<double>>);
 
-    // SECTION("extra")
-    // {
-    //     Range r3{1, 3.14};
-    //     static_assert(std::is_same_v<decltype(r3), Range<double>>);
-    // }
+    SECTION("extra")
+    {
+        Range r3{1, 3.14};
+        static_assert(std::is_same_v<decltype(r3), Range<double>>);
+    }
 }
 
 ////////////////////////////////////////////
@@ -41,6 +47,10 @@ struct Wrapper
     {
     }
 };
+
+Wrapper(const char*) -> Wrapper<std::string>;
+
+// deduction guide - TODO
 
 TEST_CASE("CTAD for Wrapper")
 {
@@ -65,9 +75,13 @@ struct Array
     T items[N];
 };
 
+// deduction guide
+template <typename T, typename... Ts>
+Array(T, Ts...) -> Array<T, sizeof...(Ts) + 1>;
+
 TEST_CASE("CTAD for Array")
 {
-    Array arr1{1, 2, 3};
+    Array arr1{1, 2, 'a'};
     static_assert(std::is_same_v<decltype(arr1), Array<int, 3>>);
 
     Array arr2{"abc", "def", "ghi", "klm"};
