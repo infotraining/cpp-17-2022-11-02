@@ -4,9 +4,19 @@
 #include <optional>
 #include <string_view>
 
-std::optional<int> to_int(std::string_view str)
+[[nodiscard]] std::optional<int> to_int(std::string_view str)
 {
-    // TODO - tip: use std::from_chars()
+    int value;
+
+    auto start = str.data();
+    auto end = str.data() + str.size();
+
+    if (const auto [pos_end, error_code] = std::from_chars(start, end, value); error_code != std::errc{} || pos_end != end)
+    {
+        return std::nullopt;
+    }
+
+    return value;
 }
 
 TEST_CASE("to_int returning optional")
