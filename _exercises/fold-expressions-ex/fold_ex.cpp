@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
 #include <iostream>
 #include <memory>
 #include <set>
@@ -12,7 +13,20 @@ using namespace std;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO
+template <typename TVec, typename... TArgs>
+int matches(const TVec& v, const TArgs&... args)
+{
+    int num{0};
+    (..., (num += count(begin(v), end(v), args)));
+
+    return num;
+}
+
+template <typename TVec, typename... TArgs>
+int matches_alt(const TVec& v, const TArgs&... args)
+{
+    return (... + count(begin(v), end(v), args)));
+}
 
 TEST_CASE("matches - returns how many items is stored in a container")
 {
@@ -44,24 +58,30 @@ public:
     }
 };
 
-// TODO
+template <typename... TArgs>
+[[nodiscard]] auto make_vector(TArgs&&... args)
+{
+    std::vector<std::common_type_t<TArgs...>> vec;
+    vec.reserve(sizeof...(args));
+    (..., vec.push_back(std::forward<TArgs>(args)));
+
+    return vec;
+}
 
 TEST_CASE("make_vector - create vector from a list of arguments")
 {
     // Tip: use std::common_type_t<Ts...> trait
-
-    using namespace Catch::Matchers;
-
     SECTION("ints")
     {
         std::vector<int> v = make_vector(1, 2, 3);
+        //std::vector v = {1, 2, 3};
 
-        REQUIRE_THAT(v, Equals(vector{1, 2, 3}));
+        REQUIRE(v == vector{1, 2, 3});
     }
 
     SECTION("unique_ptrs")
     {
-        auto ptrs = make_vector(make_unique<int>(5), make_unique<int>(6));
+        const auto ptrs = make_vector(make_unique<int>(5), make_unique<int>(6));
 
         REQUIRE(ptrs.size() == 2);
     }
@@ -76,11 +96,11 @@ TEST_CASE("make_vector - create vector from a list of arguments")
         transform(begin(gadgets), end(gadgets), back_inserter(ids), [](auto& ptr)
             { return ptr->id(); });
 
-        REQUIRE_THAT(ids, Equals(vector<string>{"a", "b", "a"}));
+        REQUIRE(ids == vector{"a"s, "b"s, "a"s});
     }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <typename T>
 void hash_combine(size_t& seed, const T& value)
@@ -88,11 +108,12 @@ void hash_combine(size_t& seed, const T& value)
     seed ^= hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-template <typename TArg>
-size_t combined_hash(const TArg& arg)
+template <typename ...TArg>
+size_t combined_hash(const TArg&... arg)
 {
     size_t seed{};
-    hash_combine(seed, arg);
+
+    (..., hash_combine(seed, arg));
 
     return seed;
 }

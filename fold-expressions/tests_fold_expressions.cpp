@@ -32,78 +32,98 @@ TEST_CASE("fold expressions")
     Cpp98::fold_98();
 }
 
-namespace BeforeCpp17
+namespace VariadicTemplates
 {
-    template <typename T>
-    auto sum(const T& last)
+    namespace ver_1_0
     {
-        return last;
+        void foo() {} // acces using VariadicTemplates::ver_1_0::foo()
     }
 
-    template <typename THead, typename... TTail>
-    auto sum(const THead& head, const TTail&... tail)
+    namespace ver_1_1 
     {
-        return head + sum(tail...);
-    }
-} // namespace BeforeCpp17
-
-namespace SinceCpp17
-{
-    template <typename... TArgs>
-    auto sum(const TArgs&... args)
-    {
-        return (... + args); // ((((1 + 2) + 3) + 4) + 5);
+        void foo() {} // acces using VariadicTemplates::ver_1_1::foo()
     }
 
-    template <typename... TArgs>
-    auto sum_right(const TArgs&... args)
+    inline namespace ver_2_0 
     {
-        return (args + ...); // (1 + ( 2 + (3 + (4 + 5))));
+        void foo() {} // acces using VariadicTemplate::foo() or VariadicTemplate::ver_2_0::foo()
     }
 
-    template <typename... TArgs>
-    void print(const TArgs&... args)
+    namespace BeforeCpp17
     {
-        auto with_space = [is_first = true](const auto& item) mutable
+        template <typename T>
+        auto sum(const T& last)
         {
-            if (!is_first)
-                std::cout << " ";
-            is_first = false;
-            return item;
-        };
+            return last;
+        }
 
-        (std::cout << ... << with_space(args)) << "\n"; // left binary fold: ((((std::cout << 1) << 42) << 3.14) << "text")
-    }
+        template <typename THead, typename... TTail>
+        auto sum(const THead& head, const TTail&... tail)
+        {
+            return head + sum(tail...);
+        }
+    } // namespace BeforeCpp17
 
-    template <typename... TArgs>
-    void print_lines(const TArgs&... args)
+    inline namespace SinceCpp17
     {
-        (..., (std::cout << args << "\n"));
-    }
+        template <typename... TArgs>
+        auto sum(const TArgs&... args)
+        {
+            return (... + args); // ((((1 + 2) + 3) + 4) + 5);
+        }
 
-    template <typename... TArgs>
-    void print_separated(const TArgs&... args)
-    {
-        (..., (std::cout << args << " ")) << "\n";
-    }
+        template <typename... TArgs>
+        auto sum_right(const TArgs&... args)
+        {
+            return (args + ...); // (1 + ( 2 + (3 + (4 + 5))));
+        }
 
-    template <typename F, typename... TArgs>
-    decltype(auto) apply_function(F&& f, TArgs&&... args)
-    {
-        return (..., f(std::forward<TArgs>(args)));
+        template <typename... TArgs>
+        void print(const TArgs&... args)
+        {
+            auto with_space = [is_first = true](const auto& item) mutable
+            {
+                if (!is_first)
+                    std::cout << " ";
+                is_first = false;
+                return item;
+            };
+
+            (std::cout << ... << with_space(args)) << "\n"; // left binary fold: ((((std::cout << 1) << 42) << 3.14) << "text")
+        }
+
+        template <typename... TArgs>
+        void print_lines(const TArgs&... args)
+        {
+            (..., (std::cout << args << "\n"));
+        }
+
+        template <typename... TArgs>
+        void print_separated(const TArgs&... args)
+        {
+            (..., (std::cout << args << " ")) << "\n";
+        }
+
+        template <typename F, typename... TArgs>
+        decltype(auto) apply_function(F&& f, TArgs&&... args)
+        {
+            return (..., f(std::forward<TArgs>(args)));
+        }
     }
 }
 
 TEST_CASE("fold expressions for variadic templates")
 {
-    int result = SinceCpp17::sum(1, 2, 3, 4, 5);
+    int result = VariadicTemplates::sum(1, 2, 3, 4, 5);
     REQUIRE(result == 15);
 
-    SinceCpp17::print(1, 42, 3.14, "text");
+    VariadicTemplates::print(1, 42, 3.14, "text");
 
-    SinceCpp17::print_lines(1, 42, 3.14, "text");
-    
-    SinceCpp17::print_separated(1, 42, 3.14, "text");
+    VariadicTemplates::print_lines(1, 42, 3.14, "text");
 
-    SinceCpp17::apply_function([](auto x) { std::cout << "item: " << x << "\n"; }, 1, 3.14, "text");
+    VariadicTemplates::print_separated(1, 42, 3.14, "text");
+
+    VariadicTemplates::apply_function([](auto x)
+        { std::cout << "item: " << x << "\n"; },
+        1, 3.14, "text");
 }
